@@ -74,19 +74,24 @@ spring:
       - dev
   datasource:
     url: jdbc:mysql://localhost:3306/foursales_db
-    username: app_user
-    password: app_secret
+    username: root
+    password: mySecretPassword123
   jpa:
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+        use_sql_comments: true
+        type:
+          bind: true
   devtools:
     add-properties: true
 
 logging:
   level:
     '[br.com.foursales]': DEBUG
+    '[org.springframework.data.elasticsearch.core]': TRACE
+    '[org.elasticsearch.client]': DEBUG
     web: DEBUG
 
 ---
@@ -102,12 +107,20 @@ spring:
     password: mySecretPassword123
   liquibase:
     drop-first: true
-  elasticsearch:
-    uris:
-      - localhost:9201
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        type:
+          bind: true
+
 
 foursales:
   app:
+    elasticsearch:
+      index-prefix: test_
     jwt:
       secret: segredo-super-secreto
     messaging:
@@ -120,6 +133,8 @@ foursales:
 logging:
   level:
     '[br.com.foursales]': DEBUG
+    '[org.springframework.data.elasticsearch.core]': TRACE
+    '[org.elasticsearch.client]': DEBUG
     web: DEBUG
 ---
 
@@ -129,7 +144,7 @@ spring:
       on-profile:
       - prod
   datasource:
-    url: jdbc:mysql://localhost:3306/orders_db_prd
+    url: jdbc:mysql://localhost:3306/forsales_db
     username: app_user
     password: app_secret
 

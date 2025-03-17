@@ -3,6 +3,7 @@ package br.com.foursales.app.infrastructure.web.v1;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.com.foursales.app.application.dto.OrderCreateRequest;
+import br.com.foursales.app.application.dto.OrderResponse;
 import br.com.foursales.app.application.service.OrderService;
 
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,13 +30,13 @@ public class OrderController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	public void createOrder(@RequestBody OrderCreateRequest newOrder) {
-		orderService.create(newOrder);
+	public OrderResponse createOrder(@RequestBody OrderCreateRequest newOrder) {
+		return orderService.create(newOrder);
 	}
 
-	@PatchMapping("/{id}/payments/installment/{installment}")
-	public void payOrder(@RequestBody String entity, @RequestParam String id, @RequestParam Short installment) {
-		orderService.doPayment(UUID.fromString(id), installment);
+	@PatchMapping("/{id}/payments")
+	public void payOrder(@RequestBody String entity, @RequestParam String id) {
+		orderService.doPayment(UUID.fromString(id));
 	}
 
 

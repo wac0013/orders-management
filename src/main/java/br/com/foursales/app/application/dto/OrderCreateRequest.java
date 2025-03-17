@@ -9,5 +9,5 @@ import lombok.Builder;
 public record OrderCreateRequest(
     BigDecimal discount,
     Set<OrderItemCreate> items,
-    Set<PaymentRequest> payments
+    PaymentRequest payment
 ) {}

@@ -13,6 +13,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Table(name = "users")
 @Entity
@@ -20,7 +21,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = true, exclude = "roles")
+@ToString(exclude = "roles", callSuper = true)
 public class UserEntity extends UuidIdentifierEntity {
 
   @Column(name = "name", nullable = false)

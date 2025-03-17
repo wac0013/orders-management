@@ -1,8 +1,11 @@
 package br.com.foursales.app.application.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.MessageFormat;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.modelmapper.ModelMapper;
@@ -10,12 +13,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import br.com.foursales.app.application.dto.OrderCreateRequest;
+import br.com.foursales.app.application.dto.OrderItemResponse;
+import br.com.foursales.app.application.dto.OrderResponse;
+import br.com.foursales.app.domain.document.ProductDocument;
 import br.com.foursales.app.domain.enums.OrderStatusEnum;
 import br.com.foursales.app.domain.model.OrderEntity;
+import br.com.foursales.app.domain.model.OrderItemEntity;
+import br.com.foursales.app.domain.model.PaymentEntity;
 import br.com.foursales.app.domain.repository.OrderRepository;
 import br.com.foursales.app.domain.repository.ProductRepository;
 import br.com.foursales.app.infrastructure.messaging.KafkaProducer;
-import br.com.foursales.app.utils.exception.BusinessException;
 import br.com.foursales.app.utils.exception.NotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -34,54 +41,94 @@ public class OrderService {
 
 
 	@Transactional
-	public OrderEntity create(OrderCreateRequest order) {
-		checkAllProductsExists(order.items()
+	public OrderResponse create(OrderCreateRequest order) {
+		var products = checkAllProductsExists(order.items()
 			.stream()
 			.map(item -> item.productId())
 			.toList());
-		var orderEntity = mapper.map(order, OrderEntity.class);
+		var orderEntity = mapToEntity(order, products);
 		var orderSaved = repository.save(orderEntity);
 
 		kafkaProducer.sendMessage(orderCreatedTopic, mapper.map(orderSaved, String.class));
-		return orderSaved;
+		return mapToResponse(orderSaved);
 	}
 
-	private void checkAllProductsExists(List<String> productsIds) {
-		var products = productRepository.findAllByIdIn(productsIds);
+	private OrderResponse mapToResponse(OrderEntity order) {
+		return OrderResponse.builder()
+			.id(order.getId().toString())
+			.status(order.getStatus())
+			.total(order.getTotal())
+			.discount(order.getDiscount())
+			.items(order.getItems().parallelStream()
+				.map(item -> {
+					return OrderItemResponse.builder()
+						.sequence(item.getSequence())
+						.productId(item.getProduct())
+						.amount(item.getAmount())
+						.unitaryPrice(item.getUnitaryPrice())
+						.build();
+				}).toList())
+			.build();
+	}
 
-		var notFoundProducts = new ArrayList<String>();
-		var outOfStockProducts = new ArrayList<String>();
-
-		for (String productId : productsIds) {
+	private OrderEntity mapToEntity(OrderCreateRequest order, List<ProductDocument> products) {
+		var orderEntity = mapper.map(order, OrderEntity.class);
+		var items = new HashSet<OrderItemEntity>();
+		int index = 1;
+		for (var item : order.items()) {
+			var orderItemEntity = mapper.map(item, OrderItemEntity.class);
 			var productOptional = products.stream()
-				.filter(p -> p.getId().equals(productId))
-				.findFirst();
-
-			if (productOptional.isEmpty()) {
-				notFoundProducts.add(productId);
-			} else if (productOptional.get().getCurrentStock() <= 0) {
-				outOfStockProducts.add(productId);
-			}
+					.filter(p -> p.getId().equals(item.productId()))
+					.findFirst();
+			orderItemEntity.setSequence((short) index++);
+			orderItemEntity.setAmount(Long.valueOf(item.amount()));
+			orderItemEntity.setProduct(productOptional.get().getId());
+			orderItemEntity.setUnitaryPrice(productOptional.get().getPrice());
+			orderItemEntity.setOrder(orderEntity);
+			items.add(orderItemEntity);
 		}
+
+		orderEntity.setItems(items);
+
+		BigDecimal total = items.stream()
+			.map(item -> {
+				return BigDecimal.valueOf(item.getAmount()).multiply(item.getUnitaryPrice());
+			})
+			.reduce(BigDecimal.ZERO, BigDecimal::add)
+			.setScale(4, RoundingMode.HALF_UP);
+
+		var payment = mapper.map(order.payment(), PaymentEntity.class);
+		payment.setValue(total.min(orderEntity.getDiscount()));
+		payment.setOrder(orderEntity);
+
+		orderEntity.setTotal(total);
+		orderEntity.setPayments(Set.of(payment));
+
+		return orderEntity;
+	}
+
+	private List<ProductDocument> checkAllProductsExists(List<String> productsIds) {
+		var products = productRepository.findAllByIdInAndStockGreaterThanZero(productsIds);
+		var notFoundProducts = productsIds.stream()
+			.filter(productId -> products.stream().noneMatch(p -> p.getId().equals(productId)))
+			.toList();
 
 		if (!notFoundProducts.isEmpty()) {
-			throw new NotFoundException(MessageFormat.format("Produtos não encontrados: {0}", notFoundProducts));
+			throw new NotFoundException(MessageFormat.format("Produtos com estoque não encontrados: {0}", notFoundProducts));
 		}
 
-		if (!outOfStockProducts.isEmpty()) {
-			throw new BusinessException(MessageFormat.format("Produtos sem estoque: {0}", outOfStockProducts));
-		}
+		return products;
 	}
 
 	@Transactional
-	public void doPayment(UUID orderId, Short installment) {
+	public void doPayment(UUID orderId) {
 		var orderOptional = repository.findByIdAndStatusIn(orderId, List.of(OrderStatusEnum.PENDING));
 
 		if (orderOptional.isEmpty()) {
 			throw new NotFoundException(MessageFormat.format("Pedido pendente não encontrado: {0}", orderId));
 		}
 
-		paymentService.processPayment(orderId, installment);
+		paymentService.processPayment(orderId);
 
 		var order = orderOptional.get();
 		order.setStatus(OrderStatusEnum.PAID);

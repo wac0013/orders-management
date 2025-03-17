@@ -12,6 +12,6 @@ import br.com.foursales.app.domain.model.PaymentEntity;
 @Repository
 public interface PaymentRepository extends UuidIdentifierRepository<PaymentEntity> {
 
-	Optional<PaymentEntity> findByOrderIdAndInstallmentAndStatusIn(UUID orderId, short installment, List<PaymentStatusEnum> status);
+	Optional<PaymentEntity> findByOrderIdAndStatusIn(UUID orderId, List<PaymentStatusEnum> status);
 
 }

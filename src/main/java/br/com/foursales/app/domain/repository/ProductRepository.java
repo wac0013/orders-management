@@ -5,11 +5,11 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.elasticsearch.annotations.Query;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 import org.springframework.stereotype.Repository;
 
 import br.com.foursales.app.domain.document.ProductDocument;
-import br.com.foursales.app.domain.model.ProductIdStockProjection;
 
 @Repository
 public interface ProductRepository extends ElasticsearchRepository<ProductDocument, String> {
@@ -18,6 +18,6 @@ public interface ProductRepository extends ElasticsearchRepository<ProductDocume
 
 	Optional<ProductDocument> findById(String id);
 
-	List<ProductIdStockProjection> findAllByIdIn(List<String> ids);
-
+	@Query("{\"bool\": {\"must\": [{\"terms\": {\"_id\": ?0}}, {\"range\": {\"currentStock\": {\"gt\": 0}}}]}}")
+	List<ProductDocument> findAllByIdInAndStockGreaterThanZero(List<String> ids);
 }

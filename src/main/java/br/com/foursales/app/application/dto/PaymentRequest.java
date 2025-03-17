@@ -1,13 +1,10 @@
 package br.com.foursales.app.application.dto;
 
-import java.math.BigDecimal;
-import br.com.foursales.app.domain.enums.PaymentStatusEnum;
 import br.com.foursales.app.domain.enums.PaymentTypeEnum;
+import lombok.Builder;
 
+@Builder
 public record PaymentRequest(
-    String orderId,
-    PaymentTypeEnum type,
-    BigDecimal value,
-    PaymentStatusEnum status,
-    Short installment
+	PaymentTypeEnum type,
+    Short installments
 ) {}

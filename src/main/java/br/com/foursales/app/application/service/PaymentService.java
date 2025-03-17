@@ -18,13 +18,13 @@ public class PaymentService {
 	private final PaymentRepository repository;
 
 
-	public void processPayment(UUID orderId, short installment) {
-		var paymentOptional = repository.findByOrderIdAndInstallmentAndStatusIn(
-			orderId, installment, List.of(PaymentStatusEnum.PENDING));
+	public void processPayment(UUID orderId) {
+		var paymentOptional = repository.findByOrderIdAndStatusIn(
+			orderId, List.of(PaymentStatusEnum.PENDING));
 
 		if (paymentOptional.isEmpty()) {
 			throw new NotFoundException(MessageFormat.format(
-					"Pagamento pendente para o pedido {0} e parcela {1} não encontrado", orderId, installment));
+					"Pagamento pendente para o pedido {0} e parcela {1} não encontrado", orderId));
 		}
 
 		var payment = paymentOptional.get();

@@ -86,7 +86,7 @@ public class ControllerExceptionHandler  {
 
 	@ExceptionHandler(BaseException.class)
 	public ResponseEntity<ExceptionHandlerResponse> handleCustomException(BaseException ex, HttpServletRequest request) {
-		logger.error("Ocorreu uma exceção não tratada: ", ex);
+		logger.error(ex.getLocalizedMessage(), ex);
 
 		var response = ExceptionHandlerResponse.builder()
 			.message(ex.getMessage())

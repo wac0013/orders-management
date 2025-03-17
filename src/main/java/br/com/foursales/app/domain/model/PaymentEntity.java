@@ -8,7 +8,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -25,9 +24,7 @@ import lombok.RequiredArgsConstructor;
 @AllArgsConstructor
 @RequiredArgsConstructor
 @Entity
-@Table(name = "payments", indexes = {
-	@Index(name = "uk_payments_order_installment", columnList = "order_id, installment", unique = true)
-})
+@Table(name = "payments")
 public class PaymentEntity extends UuidIdentifierEntity {
 
 	@ManyToOne
@@ -47,5 +44,5 @@ public class PaymentEntity extends UuidIdentifierEntity {
 	@Positive
 	@Builder.Default
 	@Column(nullable = false)
-	private Short installment = 1;
+	private Short installments = 1;
 }

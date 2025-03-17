@@ -2,9 +2,12 @@ package br.com.foursales.app.integration.infrastructure.web;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -14,14 +17,18 @@ import com.jayway.jsonpath.JsonPath;
 
 import br.com.foursales.app.application.dto.OrderCreateRequest;
 import br.com.foursales.app.application.dto.OrderItemCreate;
+import br.com.foursales.app.application.dto.PaymentRequest;
+import br.com.foursales.app.domain.enums.PaymentTypeEnum;
 import br.com.foursales.app.domain.enums.RoleEnum;
 import br.com.foursales.app.domain.model.UserEntity;
 import br.com.foursales.app.domain.model.UserRoleEntity;
 import br.com.foursales.app.domain.document.ProductDocument;
 import br.com.foursales.app.domain.repository.ProductRepository;
 import br.com.foursales.app.domain.repository.UserRepository;
+import br.com.foursales.app.infrastructure.messaging.KafkaProducer;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -31,6 +38,12 @@ public class OrderControllerIntegrationTest extends BaseControllerIntegrationTes
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @MockitoBean
+    private KafkaProducer kafkaProducer;
+
+	@Value("${foursales.app.messaging.topic.order.created}") private String orderCreatedTopic;
+	@Value("${foursales.app.messaging.topic.order.paid}") private String orderPaidTopic;
 
     private static String accessToken;
 	private static List<ProductDocument> products;
@@ -85,33 +98,38 @@ public class OrderControllerIntegrationTest extends BaseControllerIntegrationTes
         var orderItem1 = OrderItemCreate.builder().productId(products.get(0).getId()).amount(1).build();
         var orderItem2 = OrderItemCreate.builder().productId(products.get(1).getId()).amount(6).build();
 		var totalComputed = products.get(0).getPrice().multiply(BigDecimal.valueOf(orderItem1.amount()))
-			.add(products.get(1).getPrice().multiply(BigDecimal.valueOf(orderItem2.amount())));
+			.add(products.get(1).getPrice().multiply(BigDecimal.valueOf(orderItem2.amount())))
+			.setScale(4, RoundingMode.HALF_UP);
         var orderRequest = OrderCreateRequest.builder()
             .discount(BigDecimal.valueOf(10.0))
             .items(Set.of(orderItem1, orderItem2))
-            .payments(Set.of())
+            .payment(PaymentRequest.builder().type(PaymentTypeEnum.PIX).build())
             .build();
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/v1/orders")
+        var response = mockMvc.perform(MockMvcRequestBuilders.post("/v1/orders")
                 .header("Authorization", "Bearer " + accessToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(orderRequest)))
                 .andExpect(MockMvcResultMatchers.status().isCreated())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.total").value(totalComputed));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.total").value(totalComputed))
+				.andReturn().getResponse()
+				.getContentAsString();
+
+		Mockito.verify(kafkaProducer).sendMessage(
+				Mockito.eq(orderCreatedTopic),
+				Mockito.eq(JsonPath.parse(response).read("$.id", String.class)));
     }
 
     @Test
     public void whenPayOrderThenStatusIsOk() throws Exception {
         String paymentRequest = "{\"paymentDetails\":\"Sample Payment\"}";
         String orderId = UUID.randomUUID().toString();
-        Short installment = 1;
 
-        mockMvc.perform(MockMvcRequestBuilders.patch("/v1/orders/" + orderId + "/payments/installment/" + installment)
+        mockMvc.perform(MockMvcRequestBuilders.patch("/v1/orders/" + orderId)
                 .contentType(MediaType.APPLICATION_JSON)
 				.header("Authorization", "Bearer " + accessToken)
                 .content(paymentRequest)
-                .param("id", orderId)
-                .param("installment", installment.toString()))
+                .param("id", orderId))
                 .andExpect(MockMvcResultMatchers.status().isOk());
     }
 
@@ -129,13 +147,11 @@ public class OrderControllerIntegrationTest extends BaseControllerIntegrationTes
 	public void whenPayOrderWithoutTokenThenStatusIsForbidden() throws Exception {
 		String paymentRequest = "{\"paymentDetails\":\"Sample Payment\"}";
 		String orderId = UUID.randomUUID().toString();
-		Short installment = 1;
 
-		mockMvc.perform(MockMvcRequestBuilders.patch("/v1/orders/" + orderId + "/payments/installment/" + installment)
+		mockMvc.perform(MockMvcRequestBuilders.patch("/v1/orders/" + orderId )
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(paymentRequest)
-				.param("id", orderId)
-				.param("installment", installment.toString()))
+				.param("id", orderId))
 				.andExpect(MockMvcResultMatchers.status().isForbidden());
 	}
 }

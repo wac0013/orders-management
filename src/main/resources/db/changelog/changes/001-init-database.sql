@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS orders_items (
     id BINARY(16) PRIMARY KEY,
     order_id BINARY(16) NOT NULL,
     amount BIGINT NOT NULL,
+    unitary_price DECIMAL(10, 4) NOT NULL DEFAULT 0,
     product VARCHAR(255) NOT NULL,
     sequence SMALLINT NOT NULL,
     created_by BINARY(16),
@@ -73,7 +74,7 @@ CREATE TABLE IF NOT EXISTS payments (
     type VARCHAR(30),
     value DECIMAL(10, 4) NOT NULL DEFAULT 0,
     status VARCHAR(30),
-    installment SMALLINT NOT NULL DEFAULT 1,
+    installments SMALLINT NOT NULL DEFAULT 1,
     created_at DATETIME(6) NOT NULL,
     updated_at DATETIME(6) NOT NULL,
     created_by BINARY(16),
@@ -83,4 +84,3 @@ CREATE TABLE IF NOT EXISTS payments (
 ALTER TABLE payments ADD CONSTRAINT fk_payments_orders FOREIGN KEY (order_id) REFERENCES orders (id);
 ALTER TABLE payments ADD CONSTRAINT fk_payments_users_cb FOREIGN KEY (created_by) REFERENCES users (id);
 ALTER TABLE payments ADD CONSTRAINT fk_payments_users_ub FOREIGN KEY (updated_by) REFERENCES users (id);
-CREATE UNIQUE INDEX uk_payments_order_installment ON payments (order_id, installment);

@@ -88,29 +88,13 @@ services:
     volumes:
       - .data/elasticsearch:/bitnami/elasticsearch
 
-  elasticsearch-test:
-    image: bitnami/elasticsearch:latest
-    container_name: elasticsearch-test
-    environment:
-      - ELASTICSEARCH_NODE_NAME=elasticsearch-test
-      - ELASTICSEARCH_CLUSTER_NAME=elasticsearch-cluster-test
-      - ELASTICSEARCH_NETWORK_HOST=0.0.0.0
-      - ELASTICSEARCH_HTTP_PORT=9201
-      - ELASTICSEARCH_DISCOVERY_TYPE=single-node
-    ports:
-      - "9201:9201"
-      - "9301:9301"
-    volumes:
-      - .data/elasticsearch-test:/bitnami/elasticsearch
-
   kibana:
     image: bitnami/kibana:latest
     container_name: kibana
     ports:
       - "5601:5601"
     environment:
-      ELASTICSEARCH_HOSTS: http://elasticsearch:9200,http://elasticsearch-test:9201
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
       KIBANA_ELASTICSEARCH_URL: elasticsearch
     depends_on:
       - elasticsearch
-      - elasticsearch-test

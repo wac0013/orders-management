@@ -1,5 +1,7 @@
 package br.com.foursales.app.domain.model;
 
+import java.math.BigDecimal;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
@@ -35,4 +37,8 @@ public class OrderItemEntity extends UuidIdentifierEntity{
 	@Positive()
 	@Column(nullable = false)
 	private Long amount;
+
+	@Positive
+	@Column(nullable = false, precision = 10, scale = 4)
+	private BigDecimal unitaryPrice;
 }
