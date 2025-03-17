@@ -49,7 +49,7 @@ public class OrderService {
 		var orderEntity = mapToEntity(order, products);
 		var orderSaved = repository.save(orderEntity);
 
-		kafkaProducer.sendMessage(orderCreatedTopic, mapper.map(orderSaved, String.class));
+		sendMessageToKafka(orderCreatedTopic, orderSaved);
 		return mapToResponse(orderSaved);
 	}
 
@@ -133,7 +133,33 @@ public class OrderService {
 		var order = orderOptional.get();
 		order.setStatus(OrderStatusEnum.PAID);
 		repository.save(order);
-		kafkaProducer.sendMessage(orderPaidTopic, mapper.map(order, String.class));
+		sendMessageToKafka(orderPaidTopic, order.getId().toString());
 	}
 
+	private void sendMessageToKafka(String topic, Object payload) {
+		try {
+			kafkaProducer.sendMessage(topic, payload);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Transactional
+	public void processOrderPaymentAndStock(UUID orderId) {
+		var order = repository.findById(orderId)
+			.orElseThrow(() ->
+				new NotFoundException(MessageFormat.format("Pedido não encontrado: {0}", orderId)));
+
+		var productIds = order.getItems().stream()
+			.map(item -> item.getProduct())
+			.toList();
+
+		var availableProducts = productRepository.findAllByIdInAndStockGreaterThanZero(productIds);
+		var unavailableProducts = productIds.stream()
+			.filter(productId -> availableProducts.stream().noneMatch(p -> p.getId().equals(productId)))
+			.toList();
+
+		order.setStatus(!unavailableProducts.isEmpty() ? OrderStatusEnum.CANCELED : OrderStatusEnum.PAID);
+		repository.save(order);
+	}
 }

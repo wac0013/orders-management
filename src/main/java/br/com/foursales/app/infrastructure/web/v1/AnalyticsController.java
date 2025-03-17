@@ -3,7 +3,11 @@ package br.com.foursales.app.infrastructure.web.v1;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import br.com.foursales.app.application.service.AnalyticService;
 import lombok.RequiredArgsConstructor;
+
+import java.math.BigDecimal;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -13,21 +17,21 @@ import org.springframework.web.bind.annotation.RequestParam;
 @RequiredArgsConstructor
 public class AnalyticsController {
 
+	private final AnalyticService service;
+
 	@GetMapping("/top-buyers")
 	public String getTopBuyers(@RequestParam String param) {
-		return new String();
+		return service.getTopBuyers();
 	}
 
 	@GetMapping("/average-ticket")
-	public String getAverageTicket(@RequestParam String param) {
-		// Logic to calculate the average ticket will be implemented here
-		return new String();
+	public BigDecimal getAverageTicket(@RequestParam String param) {
+		return service.getAvgTicket();
 	}
 
 	@GetMapping("/monthly-revenue")
-	public String getMonthlyRevenue(@RequestParam(required = false) String month) {
-		// Logic to calculate the revenue for the specified month
-		return "";
+	public BigDecimal getMonthlyRevenue(@RequestParam(required = false) String month) {
+		return service.getMonthlyRevenue(month);
 	}
 
 
