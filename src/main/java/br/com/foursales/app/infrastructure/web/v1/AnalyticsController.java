@@ -3,10 +3,9 @@ package br.com.foursales.app.infrastructure.web.v1;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import br.com.foursales.app.application.dto.AnalyticsResponse;
 import br.com.foursales.app.application.service.AnalyticService;
 import lombok.RequiredArgsConstructor;
-
-import java.math.BigDecimal;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -19,20 +18,17 @@ public class AnalyticsController {
 
 	private final AnalyticService service;
 
-	@GetMapping("/top-buyers")
-	public String getTopBuyers(@RequestParam String param) {
-		return service.getTopBuyers();
-	}
+	@GetMapping("/analytics")
+	public AnalyticsResponse getAnalytics(
+		@RequestParam(required = false, defaultValue = "false") boolean topBuyers,
+		@RequestParam(required = false, defaultValue = "false") boolean averageTicket,
+		@RequestParam(required = false, defaultValue = "false") boolean monthlyRevenue) {
 
-	@GetMapping("/average-ticket")
-	public BigDecimal getAverageTicket(@RequestParam String param) {
-		return service.getAvgTicket();
+		return AnalyticsResponse.builder()
+			.topBuyers(topBuyers ? service.getTopBuyers() : null)
+			.avgTicket(averageTicket ? service.getAvgTicket() : null)
+			.monthlyRevenue(monthlyRevenue ? service.getMonthlyRevenue() : null)
+			.build();
 	}
-
-	@GetMapping("/monthly-revenue")
-	public BigDecimal getMonthlyRevenue(@RequestParam(required = false) String month) {
-		return service.getMonthlyRevenue(month);
-	}
-
 
 }

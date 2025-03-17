@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import br.com.foursales.app.application.dto.AnalyticsResponse;
 import br.com.foursales.app.domain.model.UserEntity;
 
 @Repository
@@ -15,6 +16,13 @@ public interface UserRepository extends UuidIdentifierRepository<UserEntity> {
 
 	Optional<UserEntity> findByEmail(String email);
 
-	@Query("SELECT u FROM UserEntity u WHERE u.orders.size > 0 ORDER BY u.orders.size DESC LIMIT 5")
-	List<UserEntity> findTopBuyers();
+	@Query(value = """
+		SELECT new br.com.foursales.app.application.dto.AnalyticsResponse.TopBuyers(u.id, COUNT(o))
+		FROM orders o
+		INNER JOIN users u ON u.id = o.created_by
+		WHERE o.status = 'PAID'
+		GROUP BY u.id
+		ORDER BY COUNT(o) DESC
+	""", nativeQuery = true)
+	List<AnalyticsResponse.TopBuyers> findTopBuyers();
 }

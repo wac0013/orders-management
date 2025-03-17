@@ -61,38 +61,3 @@ dependencies {
 
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
-
-// tasks.named('test') {
-// 	useJUnitPlatform()
-// 	include '**/unit/**'
-// 	finalizedBy jacocoTestReport
-// }
-
-// task integrationTest(type: Test) {
-// 	useJUnitPlatform()
-// 	include '**/integration/**'
-// 	testClassesDirs = sourceSets.test.output.classesDirs
-// 	classpath = sourceSets.test.runtimeClasspath
-// 	shouldRunAfter test
-// 	finalizedBy jacocoIntegrationTestReport
-// }
-
-// task jacocoTestReport(type: JacocoReport) {
-// 	dependsOn test
-// 	reports {
-// 		xml.required = true
-// 		html.required = true
-// 	}
-// 	sourceSets sourceSets.main
-// 	executionData fileTree(dir: "$buildDir/jacoco", includes: ["test.exec"])
-// }
-
-// task jacocoIntegrationTestReport(type: JacocoReport) {
-// 	dependsOn integrationTest
-// 	reports {
-// 		xml.required = true
-// 		html.required = true
-// 	}
-// 	sourceSets sourceSets.main
-// 	executionData fileTree(dir: "$buildDir/jacoco", includes: ["integrationTest.exec"])
-// }

@@ -3,11 +3,14 @@ package br.com.foursales.app.domain.model;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.hibernate.annotations.Formula;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
