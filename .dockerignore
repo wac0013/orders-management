@@ -1,0 +1,40 @@
+# Ignore all files by default
+**
+
+# Allow the Dockerfile and docker-compose.yml
+!Dockerfile
+!docker-compose.yml
+
+# Allow necessary directories and files for the build context
+!src/
+!gradle/
+!build.gradle
+!settings.gradle
+
+# Allow .data directory for volume mounts
+!.data/
+
+# Ignore IDE and build system files
+.gradle
+.idea
+*.iws
+*.iml
+*.ipr
+.vscode/
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+out/
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# Ignore other unnecessary files
+HELP.md

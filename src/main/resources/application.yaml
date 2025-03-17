@@ -1,0 +1,144 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api/foursales
+
+spring:
+  application:
+    name: orders
+  profiles:
+    active: dev
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 15
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    enabled: true
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+  devtools:
+    add-properties: false
+  data:
+    elasticsearch:
+      repositories:
+        enabled: true
+  elasticsearch:
+    uris:
+      - localhost:9200
+    connection-timeout: 10s
+  kafka:
+    bootstrap-servers: localhost:9092
+    admin:
+      client-id: foursales-app
+      auto-create: true
+      modify-topic-configs: true
+    producer:
+      client-id: foursales-client
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      client-id: foursales-client
+      group-id: foursales-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: true
+      auto-offset-reset: earliest
+
+logging:
+  level:
+    '[br.com.foursales]': INFO
+    web: INFO
+
+foursales:
+  app:
+    jwt:
+      secret: segredo-super-secreto
+    messaging:
+      consumer:
+        group-id
+      topic:
+        order:
+          paid: order.paid
+          created: order.created
+---
+
+spring:
+  config:
+    activate:
+      on-profile:
+      - dev
+  datasource:
+    url: jdbc:mysql://localhost:3306/foursales_db
+    username: app_user
+    password: app_secret
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  devtools:
+    add-properties: true
+
+logging:
+  level:
+    '[br.com.foursales]': DEBUG
+    web: DEBUG
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile:
+      - test
+  datasource:
+    url: jdbc:mysql://localhost:3306/foursales_test_db
+    username: root
+    password: mySecretPassword123
+  liquibase:
+    drop-first: true
+  elasticsearch:
+    uris:
+      - localhost:9201
+
+foursales:
+  app:
+    jwt:
+      secret: segredo-super-secreto
+    messaging:
+      consumer:
+        group-id-test
+      topic:
+        order:
+          paid: test.order.paid
+          created: test.order.created
+logging:
+  level:
+    '[br.com.foursales]': DEBUG
+    web: DEBUG
+---
+
+spring:
+  config:
+    activate:
+      on-profile:
+      - prod
+  datasource:
+    url: jdbc:mysql://localhost:3306/orders_db_prd
+    username: app_user
+    password: app_secret
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+foursales:
+  app:
+    orders:
+      jwt:
+        secret: segredo-super-secreto-prod
